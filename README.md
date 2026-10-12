@@ -87,7 +87,7 @@ A arquitetura assume entrega **at least once** pelas filas. Não depende de gara
 Clone o repositório e entre no diretório:
 
 ```bash
-git clone <https://github.com/Kazyg/distributed-wagering-processor.git>
+git clone https://github.com/Kazyg/distributed-wagering-processor.git
 cd distributed-wagering-processor
 ```
 
