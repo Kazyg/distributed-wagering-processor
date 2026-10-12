@@ -34,7 +34,15 @@ async function main(): Promise<void> {
   // Evita aplicar permissões no banco errado.
   const isTest = process.env.NODE_ENV === 'test';
 
-  const expectedDatabase = isTest ? 'wagering_test' : 'wagering_db';
+  const replayRequested = process.env.DB_REPLAY_MODE === '1';
+
+  if (replayRequested && !isTest) {
+    throw new Error('Replay provisioning requires NODE_ENV=test');
+  }
+
+  const isReplay = isTest && replayRequested;
+
+  const expectedDatabase = isReplay ? 'wagering_replay' : isTest ? 'wagering_test' : 'wagering_db';
 
   const expectedPort = isTest ? 5433 : 5432;
 
