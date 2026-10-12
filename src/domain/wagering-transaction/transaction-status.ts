@@ -1,0 +1,4 @@
+export type WagerStatus = 'PENDING_REFERENCE' | 'PROCESSED' | 'REJECTED';
+
+export type TransactionRejectionReason =
+  'INSUFFICIENT_FUNDS' | 'REFERENCE_NOT_FOUND' | 'INVALID_REFERENCE' | 'REFERENCE_ALREADY_REVERSED';
