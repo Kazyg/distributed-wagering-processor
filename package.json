@@ -34,6 +34,7 @@
     "verify": "bun run typecheck && bun run typecheck:test && bun run lint && bun run build && bun run test:unit && bun run test:integration",
     "ops:audit": "DB_CONNECTION_MODE=app bun --env-file=.env scripts/audit-financial-integrity.ts",
     "test:load": "DB_CONNECTION_MODE=app bun --env-file=.env scripts/test-load.ts",
+    "test:multi-instance": "NODE_ENV=test DB_CONNECTION_MODE=app bun --env-file=.env.test scripts/test-multi-instance.ts",
     "ops:test:audit": "NODE_ENV=test DB_CONNECTION_MODE=app bun --env-file=.env.test scripts/audit-financial-integrity.ts",
     "test:e2e": "NODE_ENV=test DB_CONNECTION_MODE=app bun --env-file=.env.test scripts/e2e-distributed-wager.ts",
     "ops:test:status": "NODE_ENV=test DB_CONNECTION_MODE=app bun --env-file=.env.test scripts/ops-status.ts",

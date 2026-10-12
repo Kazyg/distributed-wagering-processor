@@ -377,6 +377,12 @@ tests/
 compose.yaml         Infraestrutura local
 ```
 
+### Teste de múltiplas instâncias
+
+```bash
+bun run test:multi-instance
+```
+
 ## Considerações finais
 
 O projeto demonstra o uso conjunto de transações PostgreSQL, controle de concorrência, idempotência persistente, ledger append-only e padrões Inbox/Outbox para processamento financeiro distribuído.
