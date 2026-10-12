@@ -4,21 +4,16 @@ export class Migration20261012173543_harden_ledger_integrity extends Migration {
   override name = 'Migration20261012173543_harden_ledger_integrity';
 
   override up(): void {
-    // 1. Chave composta para referência por transação e carteira.
     this.addSql(`
     ALTER TABLE public.wager_transactions
     ADD CONSTRAINT uq_wager_transaction_id_wallet
     UNIQUE (id, wallet_id);
   `);
-
-    // 2. Uma carteira só pode ter um lançamento OPENING.
     this.addSql(`
     CREATE UNIQUE INDEX uq_ledger_one_opening_per_wallet
     ON public.wallet_ledger_entries (wallet_id)
     WHERE operation = 'OPENING';
   `);
-
-    // 3. OPENING sem referência; outros lançamentos com referência.
     this.addSql(`
     ALTER TABLE public.wallet_ledger_entries
     ADD CONSTRAINT ck_ledger_reference_by_operation
@@ -35,8 +30,6 @@ export class Migration20261012173543_harden_ledger_integrity extends Migration {
     )
     NOT VALID;
   `);
-
-    // 4. FK composta: transação e carteira devem corresponder.
     this.addSql(`
     ALTER TABLE public.wallet_ledger_entries
     ADD CONSTRAINT fk_ledger_transaction_same_wallet
@@ -47,8 +40,6 @@ export class Migration20261012173543_harden_ledger_integrity extends Migration {
     ON DELETE RESTRICT
     NOT VALID;
   `);
-
-    // 5. Validar os registros históricos.
     this.addSql(`
     ALTER TABLE public.wallet_ledger_entries
     VALIDATE CONSTRAINT ck_ledger_reference_by_operation;

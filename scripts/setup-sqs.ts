@@ -10,8 +10,6 @@ import {
 
 import { createSqsClient } from '../src/infrastructure/messaging/sqs-client';
 import { getSqsQueueNames } from '../src/infrastructure/messaging/sqs-queue-names';
-
-// Este script provisiona somente o LocalStack local.
 function assertLocalStack(): void {
   const endpoint = process.env.SQS_ENDPOINT;
 
@@ -79,8 +77,6 @@ async function main(): Promise<void> {
   const names = getSqsQueueNames();
 
   try {
-    // A DLQ precisa existir antes da fila principal
-    // ser configurada para enviar mensagens a ela.
     const dlqUrl = await ensureQueue(client, names.dlq);
 
     await client.send(
@@ -109,8 +105,6 @@ async function main(): Promise<void> {
     if (dlqAttributes.Attributes?.FifoQueue !== 'true') {
       throw new Error('DLQ must be FIFO');
     }
-
-    // Cria ou recupera a fila financeira principal.
     const mainUrl = await ensureQueue(client, names.main);
 
     await client.send(
@@ -127,8 +121,6 @@ async function main(): Promise<void> {
         },
       }),
     );
-
-    // Verifica a configuração efetivamente persistida.
     const mainAttributes = await client.send(
       new GetQueueAttributesCommand({
         QueueUrl: mainUrl,

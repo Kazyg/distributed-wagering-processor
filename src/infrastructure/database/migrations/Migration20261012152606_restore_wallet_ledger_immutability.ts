@@ -17,8 +17,6 @@ export class Migration20261012152606_restore_wallet_ledger_immutability extends 
     END;
     $ledger$;
   `);
-
-    // Restaura o trigger de imutabilidade.
     this.addSql(`
     CREATE OR REPLACE TRIGGER trg_wallet_ledger_immutable
     BEFORE UPDATE OR DELETE OR TRUNCATE
@@ -26,8 +24,6 @@ export class Migration20261012152606_restore_wallet_ledger_immutability extends 
     FOR EACH STATEMENT
     EXECUTE FUNCTION public.prevent_wallet_ledger_mutation();
   `);
-
-    // Garante que esteja habilitado.
     this.addSql(`
     ALTER TABLE public.wallet_ledger_entries
     ENABLE TRIGGER trg_wallet_ledger_immutable;

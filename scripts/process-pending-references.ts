@@ -38,8 +38,6 @@ async function main(): Promise<void> {
         console.log(`[reference-worker] Result: ${result}`);
       } catch (error: unknown) {
         console.error('[reference-worker] Processing failure:', error);
-
-        // Evita um loop intenso após uma falha de infraestrutura.
         await Bun.sleep(POLL_INTERVAL_MS);
       }
     }

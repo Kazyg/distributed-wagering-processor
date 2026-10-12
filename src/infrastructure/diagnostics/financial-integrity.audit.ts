@@ -34,11 +34,7 @@ export async function runFinancialAudit(
   walletId?: string,
 ): Promise<FinancialAuditReport> {
   return em.fork().transactional(async (tx) => {
-    // Todas as consultas usam o mesmo snapshot.
-    // Essa transação não pode modificar dados.
     await tx.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
-
-    // 1. Verifica cada lançamento individualmente.
     const incorrectLedgerArithmetic = await countFindings(
       tx,
       `
@@ -66,8 +62,6 @@ export async function runFinancialAudit(
       `,
       walletId,
     );
-
-    // 2. Confere saldo armazenado versus soma do ledger.
     const mismatchedWalletBalances = await countFindings(
       tx,
       `
@@ -91,8 +85,6 @@ export async function runFinancialAudit(
       `,
       walletId,
     );
-
-    // 3. Detecta lançamentos sem transação válida.
     const invalidLedgerReferences = await countFindings(
       tx,
       `
@@ -117,9 +109,6 @@ export async function runFinancialAudit(
       `,
       walletId,
     );
-
-    // 4. Uma transação não pode produzir dois
-    // lançamentos financeiros no modelo atual.
     const duplicateLedgerMovements = await countFindings(
       tx,
       `
@@ -135,9 +124,6 @@ export async function runFinancialAudit(
       `,
       walletId,
     );
-
-    // 5. Transações processadas com efeito financeiro
-    // devem ter seu lançamento correspondente.
     const missingFinancialMovements = await countFindings(
       tx,
       `
@@ -162,9 +148,6 @@ export async function runFinancialAudit(
       `,
       walletId,
     );
-
-    // 6. Resultados sem efeito financeiro não devem
-    // possuir lançamentos associados.
     const unexpectedFinancialMovements = await countFindings(
       tx,
       `

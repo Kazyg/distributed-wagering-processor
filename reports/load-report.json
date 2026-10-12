@@ -1,0 +1,48 @@
+{
+  "executedAt": "2026-10-12T19:02:26.596Z",
+  "environment": {
+    "runtime": "Bun 1.4.2",
+    "os": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i3-12100F",
+    "logicalCores": 8,
+    "memoryGb": 15.84,
+    "database": "wagering_db",
+    "infrastructure": "Docker Compose / PostgreSQL / LocalStack"
+  },
+  "methodology": {
+    "endpoint": "POST /wagering/transactions",
+    "requests": 100,
+    "concurrency": 10,
+    "walletId": "d9abac6c-29a9-446e-a9c6-b9a6c18a74db",
+    "sameWallet": true,
+    "betAmount": "1.00",
+    "externalIds": "unique for every request",
+    "clientSideLatency": true,
+    "outboxObservationDelayMs": 2000
+  },
+  "results": {
+    "durationSeconds": 1.141,
+    "successful": 100,
+    "errors": 0,
+    "errorRatePercent": 0,
+    "http409": 0,
+    "statusCounts": {
+      "200": 100
+    },
+    "throughputRequestsPerSecond": 87.68,
+    "successfulRequestsPerSecond": 87.68,
+    "latencyMs": {
+      "p50": 34.74,
+      "p95": 700.52,
+      "p99": 1130.35
+    },
+    "outboxLagMs": {
+      "publishedEvents": 100,
+      "pendingEvents": 0,
+      "p50": 1021.76,
+      "p95": 1117.82,
+      "p99": 1120.71
+    }
+  }
+}

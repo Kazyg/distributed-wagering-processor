@@ -37,9 +37,6 @@ async function main(): Promise<void> {
       testId,
       createdAt: new Date().toISOString(),
     });
-
-    // Envia uma mensagem com um grupo e ID
-    // de deduplicação únicos para este teste.
     const sent = await client.send(
       new SendMessageCommand({
         QueueUrl: queueUrl,
@@ -54,8 +51,6 @@ async function main(): Promise<void> {
     }
 
     console.log(`Message sent: ${sent.MessageId}`);
-
-    // Procura a mensagem enviada.
     let found = false;
 
     for (let attempt = 0; attempt < 3; attempt++) {

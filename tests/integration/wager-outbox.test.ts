@@ -132,8 +132,6 @@ describe('Transactional Wager Outbox', () => {
     if (!firstClaim) {
       throw new Error('Expected first Outbox claim');
     }
-
-    // Não deve permitir publicar WIN antes da BET.
     const blocked = await outbox().claimNext(secondEvent.eventId);
 
     expect(blocked).toBeNull();
@@ -188,8 +186,6 @@ describe('Transactional Wager Outbox', () => {
     const notDue = await outbox().claimNext(event.eventId);
 
     expect(notDue).toBeNull();
-
-    // Adianta somente o agendamento desse teste.
     await orm.em
       .fork()
       .getConnection()
@@ -264,8 +260,6 @@ describe('Transactional Wager Outbox', () => {
     if (!firstClaim) {
       throw new Error('Expected initial claim');
     }
-
-    // Simula a passagem do prazo de reserva.
     await orm.em
       .fork()
       .getConnection()
@@ -283,8 +277,6 @@ describe('Transactional Wager Outbox', () => {
     expect(recovered).not.toBeNull();
     expect(recovered?.eventId).toBe(event.eventId);
     expect(recovered?.claimToken).not.toBe(firstClaim.claimToken);
-
-    // O publisher antigo perdeu o direito de confirmar.
     const oldConfirmation = await outbox().markPublished(firstClaim.eventId, firstClaim.claimToken);
 
     expect(oldConfirmation).toBe(false);
@@ -308,8 +300,6 @@ describe('Transactional Wager Outbox', () => {
     const wager = await bet(walletId);
 
     const event = await findEvent(wager.transactionId);
-
-    // Cliente falso: simula indisponibilidade do SQS.
     const failingSqs = {
       async send(): Promise<never> {
         throw new Error('Simulated SQS outage');
@@ -333,8 +323,6 @@ describe('Transactional Wager Outbox', () => {
     expect(failedEvent.lastError).toContain('Simulated SQS outage');
     expect(failedEvent.claimToken).toBeNull();
     expect(failedEvent.claimedUntil).toBeNull();
-
-    // Adianta o retry somente no banco de testes.
     await orm.em
       .fork()
       .getConnection()
@@ -346,8 +334,6 @@ describe('Transactional Wager Outbox', () => {
     `,
         [event.eventId],
       );
-
-    // Cliente falso: desta vez o SQS aceita a mensagem.
     const successfulSqs = {
       async send(command: SendMessageCommand) {
         expect(command.input.MessageGroupId).toBe(walletId);
@@ -375,8 +361,6 @@ describe('Transactional Wager Outbox', () => {
     expect(publishedEvent.attemptCount).toBe(2);
     expect(publishedEvent.lastError).toBeNull();
     expect(publishedEvent.claimToken).toBeNull();
-
-    // O evento original continua sendo o mesmo.
     expect(publishedEvent.eventId).toBe(event.eventId);
     expect(publishedEvent.payload.transactionId).toBe(wager.transactionId);
   });

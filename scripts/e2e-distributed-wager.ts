@@ -109,7 +109,6 @@ async function main(): Promise<void> {
   const temporaryQueues: string[] = [];
 
   try {
-    // Defesa adicional: não basta confiar no nome do .env.
     const connection = await orm.em.fork().execute<{
       databaseName: string;
       username: string;
@@ -135,8 +134,6 @@ async function main(): Promise<void> {
     temporaryQueues.push(resultsUrl);
 
     console.log('[e2e] Temporary FIFO queues created');
-
-    // 1. Cria carteira no PostgreSQL de testes.
     const wallet = await new CreateWalletUseCase(
       new PostgresWalletRepository(orm.em.fork()),
     ).execute({
@@ -146,8 +143,6 @@ async function main(): Promise<void> {
     });
 
     assert.equal(wallet.balance, '100.00');
-
-    // 2. Monta uma mensagem financeira real.
     const incoming: WagerQueueMessage = {
       schemaVersion: 1,
       kind: 'WAGER_TRANSACTION',
@@ -163,10 +158,6 @@ async function main(): Promise<void> {
     };
 
     const body = JSON.stringify(incoming);
-
-    // 3. Envia duas cópias da mesma mensagem.
-    // DeduplicationIds SQS distintos forçam duas
-    // entregas, mantendo o messageId da Inbox.
     for (let i = 0; i < 2; i++) {
       await sqs.send(
         new SendMessageCommand({
@@ -184,8 +175,6 @@ async function main(): Promise<void> {
       orm.em.fork(),
       new PostgresBetRepository(orm.em.fork()),
     );
-
-    // 4. Primeira entrega.
     const firstMessage = await receiveRequired(sqs, inputUrl);
 
     const first = await handleWagerSqsMessage(sqs, inputUrl, firstMessage, processor, {
@@ -196,8 +185,6 @@ async function main(): Promise<void> {
     assert.equal(first.result.outcome, 'PROCESSED');
 
     console.log('[e2e] First delivery processed and ACKed');
-
-    // 5. Segunda entrega: mesma Inbox.
     const secondMessage = await receiveRequired(sqs, inputUrl);
 
     const second = await handleWagerSqsMessage(sqs, inputUrl, secondMessage, processor, {
@@ -208,8 +195,6 @@ async function main(): Promise<void> {
     assert.equal(second.result.outcome, 'DUPLICATE');
 
     console.log('[e2e] Duplicate safely ACKed');
-
-    // 6. Confere o banco antes da publicação.
     const em = orm.em.fork();
 
     const savedWallet = await em.findOneOrFail(WalletEntity, { id: wallet.id });
@@ -250,9 +235,6 @@ async function main(): Promise<void> {
     assert.equal(outboxEvent.publishedAt, null);
 
     console.log('[e2e] Inbox, Wallet, Ledger and Outbox verified');
-
-    // 7. Publica o evento EXATO criado no teste.
-    // Isso evita consumir os eventos antigos do banco.
     const publisher = new SqsOutboxPublisher(
       new PostgresOutboxRepository(orm.em.fork()),
       sqs,
@@ -264,8 +246,6 @@ async function main(): Promise<void> {
     assert.equal(published, 'PUBLISHED');
 
     console.log('[e2e] Outbox event published');
-
-    // 8. Recebe o resultado pela fila temporária.
     const resultMessage = await receiveRequired(sqs, resultsUrl);
 
     if (!resultMessage.Body || !resultMessage.ReceiptHandle) {
@@ -291,22 +271,15 @@ async function main(): Promise<void> {
     );
 
     console.log('[e2e] Financial result received and ACKed');
-
-    // 9. Confere a confirmação no PostgreSQL.
     const publishedEvent = await orm.em
       .fork()
       .findOneOrFail(WagerOutboxEventEntity, { eventId: outboxEvent.eventId });
 
     assert.notEqual(publishedEvent.publishedAt, null);
     assert.equal(publishedEvent.attemptCount, 1);
-
-    // Não deve haver segunda publicação pendente
-    // para o mesmo evento já confirmado.
     const repeatedPublication = await publisher.publishNext(outboxEvent.eventId);
 
     assert.equal(repeatedPublication, 'EMPTY');
-
-    // 10. Reconcilia a carteira.
     const reconciliation = await new ReconcileWalletUseCase(
       new PostgresReconciliationRepository(orm.em.fork()),
     ).execute(wallet.id);
@@ -321,10 +294,7 @@ async function main(): Promise<void> {
     console.log('[e2e] Financial reconciliation consistent');
     console.log('[e2e] All distributed checks passed');
   } finally {
-    // Finaliza as conexões do banco de testes.
     await orm.close(true);
-
-    // Remove somente as filas criadas por este teste.
     for (const queueUrl of temporaryQueues.reverse()) {
       try {
         await sqs.send(

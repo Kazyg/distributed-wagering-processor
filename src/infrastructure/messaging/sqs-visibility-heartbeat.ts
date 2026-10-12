@@ -17,7 +17,6 @@ export async function withVisibilityHeartbeat<T>(
   let inFlight: Promise<void> | undefined;
 
   const timer = setInterval(() => {
-    // Não inicia duas renovações ao mesmo tempo.
     if (stopped || inFlight) {
       return;
     }
@@ -27,8 +26,6 @@ export async function withVisibilityHeartbeat<T>(
         await renewVisibility();
         options.onRenewed?.();
       } catch (error: unknown) {
-        // Uma falha no heartbeat não desfaz
-        // uma operação financeira já em andamento.
         options.onError?.(error);
       }
     })().finally(() => {
@@ -41,9 +38,6 @@ export async function withVisibilityHeartbeat<T>(
   } finally {
     stopped = true;
     clearInterval(timer);
-
-    // Aguarda uma eventual renovação em andamento
-    // antes de devolver o controle ao consumer.
     if (inFlight) {
       await inFlight;
     }

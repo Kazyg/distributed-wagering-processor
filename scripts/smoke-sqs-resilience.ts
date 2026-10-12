@@ -124,8 +124,6 @@ async function main(): Promise<void> {
       orm.em.fork(),
       new PostgresBetRepository(orm.em.fork()),
     );
-
-    // CENÁRIO 1 — Commit realizado, mas ACK perdido.
     const creator = new CreateWalletUseCase(new PostgresWalletRepository(orm.em.fork()));
 
     const wallet = await creator.execute({
@@ -172,9 +170,6 @@ async function main(): Promise<void> {
     }
 
     console.log('[resilience] Financial commit succeeded');
-
-    // Simulamos uma queda ANTES do DeleteMessage.
-    // A mensagem continua no SQS.
     console.log('[resilience] Simulated crash before ACK');
 
     await Bun.sleep(2300);
@@ -215,8 +210,6 @@ async function main(): Promise<void> {
 
     console.log('[resilience] Redelivery safely deduplicated');
     console.log('[resilience] Balance: 70.00, BET entries: 1');
-
-    // CENÁRIO 2 — Mensagem inválida movida à DLQ.
     const invalidBody = '{"schemaVersion":1,"kind":';
 
     await sqs.send(
@@ -231,8 +224,6 @@ async function main(): Promise<void> {
     let failedReceives = 0;
 
     for (let attempt = 0; attempt < 10; attempt++) {
-      // VisibilityTimeout zero permite testar novas
-      // entregas sem esperar a configuração normal da fila.
       const message = await receiveOne(sqs, mainUrl, 0);
 
       if (!message) {
@@ -260,8 +251,6 @@ async function main(): Promise<void> {
       console.log('[resilience] Invalid message rejected', {
         receiveCount: message.Attributes?.ApproximateReceiveCount,
       });
-
-      // Sem ACK: o SQS pode entregar novamente.
       await Bun.sleep(150);
     }
 
@@ -298,8 +287,6 @@ async function main(): Promise<void> {
     if (orm) {
       await orm.close(true);
     }
-
-    // Remove apenas as filas temporárias deste teste.
     for (const queueUrl of queues.reverse()) {
       try {
         await sqs.send(

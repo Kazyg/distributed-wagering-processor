@@ -91,11 +91,7 @@ async function main(): Promise<void> {
 
     await withVisibilityHeartbeat(
       async () => {
-        // Aguardamos mais que os dois segundos originais.
         await Bun.sleep(2_500);
-
-        // Sem heartbeat, a mensagem já poderia
-        // ter sido entregue novamente.
         const competingReceive = await sqs.send(
           new ReceiveMessageCommand({
             QueueUrl: queueUrl,

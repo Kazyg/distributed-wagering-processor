@@ -8,7 +8,6 @@ import { WagerOutboxEventEntity } from './entities/wager-outbox-event.entity';
 import { WagerTransactionEntity } from './entities/wager-transaction.entity';
 
 export function enqueueWagerResult(tx: EntityManager, wager: WagerTransactionEntity): void {
-  // Somente transações finalizadas geram eventos de resultado.
   if (wager.status !== 'PROCESSED' && wager.status !== 'REJECTED') {
     return;
   }

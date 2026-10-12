@@ -103,8 +103,6 @@ describe('Financial integrity audit', () => {
     const providerId = 'financial-audit-rollback';
     const winId = randomUUID();
     const lossId = randomUUID();
-
-    // R$ 100 → R$ 70
     await new ProcessBetUseCase(new PostgresBetRepository(orm.em.fork())).execute({
       walletId: wallet.id,
       providerId,
@@ -112,8 +110,6 @@ describe('Financial integrity audit', () => {
       amount: '30.00',
       currency: 'BRL',
     });
-
-    // R$ 70 → R$ 120
     await new ProcessOutcomeUseCase(new PostgresBetRepository(orm.em.fork())).execute({
       walletId: wallet.id,
       providerId,
@@ -122,8 +118,6 @@ describe('Financial integrity audit', () => {
       amount: '50.00',
       currency: 'BRL',
     });
-
-    // R$ 120 → R$ 70
     const rollbackWin = await new ProcessReversalUseCase(
       new PostgresBetRepository(orm.em.fork()),
     ).execute({
@@ -135,8 +129,6 @@ describe('Financial integrity audit', () => {
       amount: '50.00',
       currency: 'BRL',
     });
-
-    // LOSS não movimenta dinheiro.
     await new ProcessOutcomeUseCase(new PostgresBetRepository(orm.em.fork())).execute({
       walletId: wallet.id,
       providerId,
@@ -145,8 +137,6 @@ describe('Financial integrity audit', () => {
       amount: '30.00',
       currency: 'BRL',
     });
-
-    // ROLLBACK de LOSS também não movimenta dinheiro.
     const rollbackLoss = await new ProcessReversalUseCase(
       new PostgresBetRepository(orm.em.fork()),
     ).execute({
@@ -183,9 +173,6 @@ describe('Financial integrity audit', () => {
     });
 
     const providerId = 'financial-audit-pending';
-
-    // A carteira possui somente R$ 20.
-    // Esta aposta deve ser rejeitada.
     const rejectedBet = await new ProcessBetUseCase(
       new PostgresBetRepository(orm.em.fork()),
     ).execute({
@@ -195,8 +182,6 @@ describe('Financial integrity audit', () => {
       amount: '30.00',
       currency: 'BRL',
     });
-
-    // Referência ainda inexistente.
     const pendingRefund = await new ProcessReversalUseCase(
       new PostgresBetRepository(orm.em.fork()),
     ).execute({

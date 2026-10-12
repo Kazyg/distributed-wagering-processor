@@ -30,8 +30,6 @@ async function main(): Promise<void> {
   if (!/^[a-z_][a-z0-9_]*$/.test(appUser)) {
     throw new Error('Invalid application role name');
   }
-
-  // Evita aplicar permissões no banco errado.
   const isTest = process.env.NODE_ENV === 'test';
 
   const replayRequested = process.env.DB_REPLAY_MODE === '1';
@@ -85,8 +83,6 @@ async function main(): Promise<void> {
         NOINHERIT
       `);
     }
-
-    // O PostgreSQL faz o escape seguro da senha.
     const escaped = await client.query<{ literal: string }>(
       'SELECT quote_literal($1::text) AS literal',
       [appPassword],
@@ -120,8 +116,6 @@ async function main(): Promise<void> {
     await client.query(`
       REVOKE CREATE ON SCHEMA public FROM ${role}
     `);
-
-    // Remove permissões explícitas antigas antes de reaplicar.
     await client.query(`
       REVOKE ALL ON TABLE
         public.wallets,
@@ -131,8 +125,6 @@ async function main(): Promise<void> {
         public.wager_outbox_events
       FROM ${role}
     `);
-
-    // Leitura e inserção nas três tabelas financeiras.
     await client.query(`
       GRANT SELECT, INSERT ON TABLE
         public.wallets,
@@ -140,8 +132,6 @@ async function main(): Promise<void> {
         public.wager_transactions
       TO ${role}
     `);
-
-    // UPDATE limitado às colunas necessárias da carteira.
     await client.query(`
       GRANT UPDATE (balance, version, updated_at)
       ON TABLE public.wallets
@@ -191,8 +181,6 @@ async function main(): Promise<void> {
       ON SEQUENCE public.wager_outbox_events_id_seq
       TO ${role}
     `);
-
-    // Confirma que a conta não pode modificar o ledger.
     const permissions = await client.query<{
       canUpdateLedger: boolean;
       canDeleteLedger: boolean;

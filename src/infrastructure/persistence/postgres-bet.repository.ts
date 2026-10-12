@@ -104,15 +104,11 @@ export class PostgresBetRepository
       providerId: input.providerId,
       externalTransactionId: input.externalTransactionId,
     };
-
-    // 1. Primeira verificação de idempotência.
     const previous = await tx.findOne(WagerTransactionEntity, key);
 
     if (previous) {
       return this.replay(previous, input);
     }
-
-    // 2. Bloqueia a carteira durante o processamento.
     const walletEntity = await tx.findOne(
       WalletEntity,
       { id: input.walletId },
@@ -122,8 +118,6 @@ export class PostgresBetRepository
     if (!walletEntity) {
       throw new WalletNotFoundError();
     }
-
-    // 3. Reconsulta a chave após adquirir o lock.
     const existing = await tx.findOne(WagerTransactionEntity, key);
 
     if (existing) {
@@ -133,8 +127,6 @@ export class PostgresBetRepository
     if (walletEntity.currency !== input.currency) {
       throw new InvalidBetError('Wallet currency mismatch');
     }
-
-    // 4. Restaura o domínio da carteira.
     const wallet = Wallet.restore({
       id: walletEntity.id,
       playerId: walletEntity.playerId,
@@ -142,8 +134,6 @@ export class PostgresBetRepository
     });
 
     const amount = Money.from(input.amount, input.currency);
-
-    // 5. Prepara o registro da transação.
     const wager = new WagerTransactionEntity();
 
     wager.wallet = walletEntity;
@@ -155,8 +145,6 @@ export class PostgresBetRepository
 
     let movement: WalletMovement | null = null;
     let original: WagerTransactionEntity | null = null;
-
-    // 6. Resolve referências para REFUND e ROLLBACK.
     if (input.type === 'REFUND' || input.type === 'ROLLBACK') {
       wager.referenceExternalTransactionId = input.referenceExternalTransactionId;
 
@@ -166,9 +154,6 @@ export class PostgresBetRepository
         if (!(error instanceof ReferenceNotFoundError)) {
           throw error;
         }
-
-        // A transação original ainda não chegou.
-        // Registra a reversão como pendente.
         wager.status = 'PENDING_REFERENCE';
         wager.reason = null;
         wager.balanceAfter = walletEntity.balance;
@@ -182,8 +167,6 @@ export class PostgresBetRepository
 
       wager.referenceTransaction = original;
     }
-
-    // 7. Executa a movimentação financeira.
     try {
       switch (input.type) {
         case 'BET':
@@ -205,7 +188,6 @@ export class PostgresBetRepository
           break;
 
         case 'LOSS':
-          // LOSS não movimenta saldo.
           break;
 
         case 'REFUND':
@@ -237,8 +219,6 @@ export class PostgresBetRepository
               amount,
             });
           }
-
-          // ROLLBACK de LOSS não movimenta saldo.
           break;
       }
     } catch (error: unknown) {
@@ -252,8 +232,6 @@ export class PostgresBetRepository
       wager.status = 'REJECTED';
       wager.reason = 'INSUFFICIENT_FUNDS';
     }
-
-    // 8. Atualiza o saldo quando houve movimentação.
     if (movement) {
       walletEntity.balance = movement.wallet.balance.toString();
     }
@@ -263,15 +241,8 @@ export class PostgresBetRepository
     }
 
     wager.balanceAfter = walletEntity.balance;
-
-    // 9. Persiste a transação financeira.
     tx.persist(wager);
-
-    // Flush intermediário dentro da mesma transação SQL.
-    // Não executa COMMIT.
     await tx.flush();
-
-    // 10. Registra a movimentação no ledger.
     if (movement) {
       const entry = new WalletLedgerEntryEntity();
 
@@ -288,14 +259,11 @@ export class PostgresBetRepository
       tx.persist(entry);
     }
     enqueueWagerResult(tx, wager);
-    // 11. Retorna o resultado.
     return this.toOutput(wager);
   }
 
   async processNextPending(targetTransactionId?: string): Promise<PendingProcessingResult> {
     return this.em.fork().transactional(async (tx) => {
-      // Seleciona e bloqueia uma pendência disponível.
-      // O filtro por UUID é útil nos testes de integração.
       const rows = await tx.execute<{ id: string }[]>(
         `
       SELECT id
@@ -317,8 +285,6 @@ export class PostgresBetRepository
       }
 
       const pending = await tx.findOneOrFail(WagerTransactionEntity, { id: selectedId });
-
-      // Depois da pendência, bloqueia a carteira.
       const walletEntity = await tx.findOneOrFail(
         WalletEntity,
         { id: pending.wallet.id },
@@ -381,9 +347,6 @@ export class PostgresBetRepository
           enqueueWagerResult(tx, pending);
           return 'REJECTED';
         }
-
-        // Falhas de infraestrutura não são convertidas
-        // em rejeições financeiras.
         throw error;
       }
 
@@ -420,7 +383,6 @@ export class PostgresBetRepository
             amount,
           });
         }
-        // ROLLBACK de LOSS não movimenta saldo.
       } catch (error: unknown) {
         if (!(error instanceof InsufficientFundsError)) {
           throw error;
@@ -468,7 +430,6 @@ export class PostgresBetRepository
     wallet: WalletEntity,
     input: ProcessReversalInput,
   ): Promise<WagerTransactionEntity> {
-    // O identificador externo pertence ao namespace do provedor.
     const original = await tx.findOne(WagerTransactionEntity, {
       providerId: input.providerId,
       externalTransactionId: input.referenceExternalTransactionId,
@@ -499,9 +460,6 @@ export class PostgresBetRepository
     if (original.amount !== input.amount) {
       throw new InvalidReversalError('Reversal amount must equal the original amount');
     }
-
-    // Impede duas reversões financeiras processadas
-    // para a mesma transação original.
     const reversed = await tx.findOne(WagerTransactionEntity, {
       referenceTransaction: original,
       type: { $in: ['REFUND', 'ROLLBACK'] },

@@ -186,8 +186,6 @@ describe('Database least privileges', () => {
     expect(permissions.outboxPayloadUpdate).toBe(false);
     expect(permissions.outboxEventIdUpdate).toBe(false);
     expect(permissions.outboxTransactionUpdate).toBe(false);
-
-    // O publisher precisa atualizar o estado operacional.
     expect(permissions.outboxPublishUpdate).toBe(true);
 
     expect(permissions.outboxDelete).toBe(false);

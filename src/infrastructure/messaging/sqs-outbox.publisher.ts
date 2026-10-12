@@ -23,11 +23,7 @@ export class SqsOutboxPublisher {
         new SendMessageCommand({
           QueueUrl: this.queueUrl,
           MessageBody: event.body,
-
-          // Ordenação por carteira.
           MessageGroupId: event.walletId,
-
-          // Estável entre tentativas do mesmo evento.
           MessageDeduplicationId: event.eventId,
         }),
         {

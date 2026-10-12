@@ -50,9 +50,6 @@ export async function handleWagerSqsMessage(
 
   let heartbeatCount = 0;
   let heartbeatFailures = 0;
-
-  // O processamento financeiro e a Inbox são
-  // confirmados no PostgreSQL antes do ACK.
   const result = await withVisibilityHeartbeat(
     () => processor.process(body),
 
@@ -83,12 +80,6 @@ export async function handleWagerSqsMessage(
       },
     },
   );
-
-  // Neste ponto o processor.process() já retornou
-  // e a transação PostgreSQL foi confirmada.
-  //
-  // Se DeleteMessage falhar, o SQS poderá reenviar
-  // a mensagem, e a Inbox reconhecerá a duplicata.
   await sqs.send(
     new DeleteMessageCommand({
       QueueUrl: queueUrl,

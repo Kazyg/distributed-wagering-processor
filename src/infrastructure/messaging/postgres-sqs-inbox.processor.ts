@@ -38,14 +38,11 @@ export class PostgresSqsInboxProcessor {
   ) {}
 
   async process(body: string): Promise<InboxProcessResult> {
-    // Valida antes de iniciar qualquer operação financeira.
     const message = parseWagerQueueMessage(body);
 
     const payloadHash = createHash('sha256').update(body).digest('hex');
 
     return this.em.fork().transactional(async (tx) => {
-      // Uma inserção concorrente com o mesmo ID aguardará
-      // a decisão da transação que chegou primeiro.
       const inserted = await tx.execute<{ id: string }[]>(
         `
         INSERT INTO public.sqs_inbox_messages (
@@ -76,9 +73,6 @@ export class PostgresSqsInboxProcessor {
 
         return { outcome: 'DUPLICATE' };
       }
-
-      // Os três casos de uso compartilham exatamente
-      // o mesmo EntityManager transacional da Inbox.
       const persistence = this.wagers.forTransaction(tx);
 
       const input = message.payload;
@@ -89,9 +83,6 @@ export class PostgresSqsInboxProcessor {
           : input.type === 'WIN' || input.type === 'LOSS'
             ? await new ProcessOutcomeUseCase(persistence).execute(input)
             : await new ProcessReversalUseCase(persistence).execute(input);
-
-      // Se qualquer operação acima lançar uma exceção,
-      // a Inbox também será revertida.
       return {
         outcome: 'PROCESSED',
         transactionId: result.transactionId,

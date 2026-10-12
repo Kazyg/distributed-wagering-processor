@@ -93,9 +93,6 @@ describe('Ledger reference constraints', () => {
             input.balanceAfter,
           ],
         );
-
-        // Se o banco aceitou a inserção, forçamos
-        // rollback para não contaminar o banco de testes.
         throw new Error('UNEXPECTED_INSERT_SUCCESS');
       });
     } catch (error: unknown) {
@@ -107,9 +104,6 @@ describe('Ledger reference constraints', () => {
     if (!failure || message.includes('UNEXPECTED_INSERT_SUCCESS')) {
       throw new Error(`Database accepted an invalid ledger entry: ${constraintName}`);
     }
-
-    // Garante que falhou pela proteção esperada,
-    // não por um erro SQL não relacionado.
     expect(message).toContain(constraintName);
   }
 
@@ -133,11 +127,6 @@ describe('Ledger reference constraints', () => {
   test('should reject a transaction belonging to another wallet', async () => {
     const walletA = await createWallet();
     const walletB = await createWallet();
-
-    // LOSS processada não gera ledger.
-    // Assim, usamos um transactionId existente
-    // sem esbarrar numa possível constraint de
-    // unicidade por transaction_id.
     const loss = await new ProcessOutcomeUseCase(new PostgresBetRepository(orm.em.fork())).execute({
       walletId: walletA,
       providerId: 'ledger-constraint-provider',

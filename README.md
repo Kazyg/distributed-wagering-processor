@@ -337,6 +337,30 @@ Não é necessário importar um dump do PostgreSQL utilizado durante o desenvolv
 - O processamento de resultados SQS por sistemas externos deve aplicar sua própria deduplicação por `eventId`.
 - Os scripts de demonstração e os serviços LocalStack são destinados ao ambiente local.
 
+## Autenticação
+
+A API REST utiliza autenticação por API Key, enviada pelo header `x-api-key`.
+
+A chave deve ser configurada na variável de ambiente `API_KEY`. Requisições sem a chave ou com um valor inválido retornam HTTP 401.
+
+A autenticação foi implementada como um Guard global do NestJS. Essa abordagem protege os endpoints HTTP, mas não oferece controle individual de usuários ou autorização por carteira.
+
+A segurança dos workers e das filas é tratada separadamente por configuração de infraestrutura e permissões de acesso.
+
+## Teste de carga
+
+O teste opcional pode ser executado com:
+
+`bun run test:load`
+
+O experimento realiza 100 requisições BET com concorrência de 10, todas sobre uma carteira dedicada, utilizando identificadores externos únicos.
+
+Os resultados ficam registrados em `reports/load-report.json`, incluindo ambiente de execução, throughput, percentis de latência HTTP, erros, respostas HTTP 409 e estatísticas de publicação da Outbox.
+
+A contenção concorrente também pode se manifestar por aumento de latência sem gerar respostas de erro. Por isso, respostas HTTP 409 não representam necessariamente todas as esperas e disputas internas por locks.
+
+O benchmark é local, de curta duração, e não representa um teste de capacidade máxima em produção.
+
 ## Estrutura
 
 ```text

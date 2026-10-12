@@ -72,9 +72,6 @@ describe('Wallet reconciliation integration', () => {
     const walletId = await createWallet();
 
     const em = orm.em.fork();
-
-    // Simula uma alteração indevida no saldo.
-    // Permitida apenas neste teste de diagnóstico.
     await em.nativeUpdate(WalletEntity, { id: walletId }, { balance: '95.00' });
 
     const report = await reconciler().execute(walletId);

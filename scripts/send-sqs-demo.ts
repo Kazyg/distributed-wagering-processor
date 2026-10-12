@@ -56,9 +56,6 @@ async function main(): Promise<void> {
           QueueUrl: queue.QueueUrl,
           MessageBody: body,
           MessageGroupId: walletId,
-
-          // No modo --duplicate, alteramos deliberadamente
-          // o ID de deduplicação do SQS para testar a Inbox.
           MessageDeduplicationId: duplicates === 2 ? randomUUID() : event.messageId,
         }),
       );

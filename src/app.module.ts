@@ -39,6 +39,8 @@ import {
 } from './application/wallets/create-wallet.use-case';
 
 import { PostgresWalletRepository } from './infrastructure/persistence/postgres-wallet.repository';
+import { APP_GUARD } from '@nestjs/core';
+import { ApiKeyGuard } from './interfaces/http/api-key.guard';
 
 @Module({
   imports: [MikroOrmModule.forRoot(mikroOrmConfig)],
@@ -77,6 +79,10 @@ import { PostgresWalletRepository } from './infrastructure/persistence/postgres-
       provide: PROCESS_REVERSAL_USE_CASE,
       useFactory: (repository: PostgresBetRepository) => new ProcessReversalUseCase(repository),
       inject: [PostgresBetRepository],
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ApiKeyGuard,
     },
   ],
 })

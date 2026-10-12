@@ -210,8 +210,6 @@ async function main(): Promise<void> {
         2,
       ),
     );
-
-    // Uma proteção estrutural ausente é uma falha crítica.
     if (!triggers.ledgerProtected || !triggers.wagerStatusProtected) {
       process.exitCode = 1;
     }

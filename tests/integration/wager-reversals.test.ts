@@ -263,8 +263,6 @@ describe('REFUND and ROLLBACK integration', () => {
     expect(wallet.balance).toBe('100.00');
 
     const entries = await em.find(WalletLedgerEntryEntity, { wallet: walletId });
-
-    // Apenas o lançamento OPENING deve existir.
     expect(entries).toHaveLength(1);
     expect(entries[0]?.operation).toBe('OPENING');
   });
